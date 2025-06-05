@@ -1,0 +1,58 @@
+[
+  {
+    "chat_id": 1,
+    "sender": "Alex",
+    "sender_id": "213183",
+    "message_type": "text",
+    "content": "Hi",
+    "timestamp": "2025-06-05 13:00:21"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Bob",
+    "sender_id": "847326",
+    "message_type": "text",
+    "content": "Hello",
+    "timestamp": "2025-06-05 13:00:31"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Alex",
+    "sender_id": "213183",
+    "message_type": "text",
+    "content": "Check out my new profile picture",
+    "timestamp": "2025-06-05 13:01:12"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Alex",
+    "sender_id": "213183",
+    "message_type": "image",
+    "content": "uploads/213183/Skeleton.jpg",
+    "timestamp": "2025-06-05 13:01:16"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Bob",
+    "sender_id": "847326",
+    "message_type": "text",
+    "content": "Wow! It's cool",
+    "timestamp": "2025-06-05 13:01:42"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Bob",
+    "sender_id": "847326",
+    "message_type": "text",
+    "content": "Look at the picture I found",
+    "timestamp": "2025-06-05 13:02:53"
+  },
+  {
+    "chat_id": 1,
+    "sender": "Bob",
+    "sender_id": "847326",
+    "message_type": "image",
+    "content": "uploads/847326/Space.jpg",
+    "timestamp": "2025-06-05 13:02:55"
+  }
+]
