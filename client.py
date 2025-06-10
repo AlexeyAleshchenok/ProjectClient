@@ -6,7 +6,7 @@ import os
 import queue
 from datetime import datetime
 
-CRT_FILE = "server.crt"
+CRT_FILE = "cert.pem"
 
 
 class Client:
