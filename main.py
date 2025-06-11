@@ -9,7 +9,7 @@ import time
 import shutil
 import os
 
-SERVER_IP = "172.18.80.1"
+SERVER_IP = "192.168.56.1"
 SERVER_PORT = 443
 
 
