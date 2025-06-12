@@ -10,7 +10,18 @@ CRT_FILE = "cert.pem"
 
 
 class Client:
+    """
+    Represents a client that connects to the server via SSL.
+    Handles sending and receiving HTTP-like requests over sockets,
+    manages session state, chat logic, and user interaction.
+    """
     def __init__(self, server_ip, server_port):
+        """
+        Initializes the SSL connection to the server and starts the receiving thread.
+
+        :param server_ip: IP address of the server
+        :param server_port: Port to connect to
+        """
         self.server_ip = server_ip
         self.server_port = server_port
         self.response_queue = queue.Queue()
@@ -29,9 +40,22 @@ class Client:
         self.start_receiving()
 
     def set_chat_frame(self, chat_frame):
+        """
+        Sets a reference to the chat UI frame (for message display).
+        :param chat_frame: An instance of ChatFrame
+        """
         self.chat_frame = chat_frame
 
     def send_request(self, method, path, params=None, body=None):
+        """
+        Constructs and sends an HTTP-like request to the server.
+
+        :param method: HTTP method ("GET", "POST")
+        :param path: URL path (e.g., "/login")
+        :param params: Optional URL query parameters as a dictionary
+        :param body: Optional binary payload
+        :return: Server response (status_code, body)
+        """
         params_str = '&'.join(f'{key}={value}' for key, value in (params or {}).items())
         url = f'{path}?{params_str}' if params_str else path
 
@@ -50,9 +74,16 @@ class Client:
         return self.response_queue.get()
 
     def start_receiving(self):
+        """
+        Starts a background thread to listen for incoming server messages.
+        """
         threading.Thread(target=self._receive_loop, daemon=True).start()
 
     def _receive_loop(self):
+        """
+        Continuously listens for server responses.
+        Parses headers and dispatches messages or enqueues regular responses.
+        """
         while True:
             try:
                 data = b""
@@ -87,6 +118,11 @@ class Client:
                 break
 
     def handle_incoming_message(self, body):
+        """
+        Handles real-time incoming chat messages from the server.
+
+        :param body: Raw JSON message payload
+        """
         try:
             message = json.loads(body)
             chat_id = message.get("chat_id")
@@ -102,6 +138,12 @@ class Client:
 
     @staticmethod
     def save_message(chat_id, message_data):
+        """
+        Saves a message to a local JSON file for the given chat.
+
+        :param chat_id: ID of the chat
+        :param message_data: Dict with message info
+        """
         os.makedirs("chat_history", exist_ok=True)
         file_path = os.path.join("chat_history", f"chat_{chat_id}.json")
 
@@ -117,6 +159,12 @@ class Client:
 
     @staticmethod
     def load_chat_history(chat_id):
+        """
+        Loads a saved chat history from local JSON storage.
+
+        :param chat_id: ID of the chat
+        :return: List of message dictionaries
+        """
         file_path = os.path.join("chat_history", f"chat_{chat_id}.json")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
@@ -125,6 +173,12 @@ class Client:
 
     # POST
     def login(self, login, password):
+        """
+        Sends login credentials to the server.
+        On success, sets session user_id and returns username.
+
+        :return: username on success, None on failure
+        """
         body = (json.dumps({"login": login, "password": password})).encode()
         status, response = self.send_request("POST", "/login", body=body)
 
@@ -140,6 +194,10 @@ class Client:
             return
 
     def sign_in(self, login, username, password):
+        """
+        Registers a new user with the server.
+        On success, sets session information.
+        """
         body = (json.dumps({"login": login, "username": username, "password": password})).encode()
         status, response = self.send_request("POST", "/sign_in", body=body)
 
@@ -153,6 +211,11 @@ class Client:
             print("Sign-up failed: ", response_data.get("message"))
 
     def upload(self, filename, file_data):
+        """
+        Uploads a file to the server associated with the current user.
+
+        :return: File path on success, None otherwise
+        """
         params = {"filename": filename, "id": self.user_id}
         status, response = self.send_request("POST", "/upload", params, file_data)
 
@@ -164,6 +227,11 @@ class Client:
             print("File upload failed: ", response_data.get("message"))
 
     def create_new_chat(self, chat_name, members=None):
+        """
+        Creates a new chat (group or private) with specified members.
+
+        :return: New chat ID on success, None otherwise
+        """
         if members is None:
             members = []
         if self.user_id not in members:
@@ -181,6 +249,13 @@ class Client:
             return None
 
     def send_message(self, chat_id, message_type, content):
+        """
+        Sends a message to the specified chat.
+
+        :param chat_id: Target chat
+        :param message_type: "text" or "image"
+        :param content: Message text or base64 image
+        """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message_data = {"chat_id": chat_id, "sender": self.username, "sender_id": self.user_id,
                         "message_type": message_type, "content": content, "timestamp": timestamp}
@@ -195,6 +270,9 @@ class Client:
             print("Failed to send message:", response_data.get("message"))
 
     def add_to_chat(self, chat_id, user_id_to_add):
+        """
+        Adds a user to an existing chat.
+        """
         body = json.dumps({"chat_id": chat_id, "user_id": user_id_to_add}).encode()
         status, response = self.send_request("POST", "/add_to_chat", body=body)
 
@@ -205,6 +283,11 @@ class Client:
             print(f"Failed to add user {user_id_to_add} to chat {chat_id}:", response_data.get("message"))
 
     def send_friend_request(self, friend_id):
+        """
+        Sends a friend request to another user.
+
+        :return: True on success, False otherwise
+        """
         body = json.dumps({"user_id": self.user_id, "friend_id": friend_id}).encode()
         status, response = self.send_request("POST", "/add_friend", body=body)
 
@@ -217,6 +300,11 @@ class Client:
             return False
 
     def accept_friend_request(self, friend_id):
+        """
+        Accepts a friend request.
+
+        :return: True on success, False otherwise
+        """
         body = json.dumps({"user_id": self.user_id, "friend_id": friend_id}).encode()
         status, response = self.send_request("POST", "/accept_friend", body=body)
 
@@ -229,6 +317,11 @@ class Client:
             return False
 
     def decline_friend_request(self, friend_id):
+        """
+        Declines a pending friend request.
+
+        :return: True on success, False otherwise
+        """
         body = json.dumps({"user_id": self.user_id, "friend_id": friend_id}).encode()
         status, response = self.send_request("POST", "/decline_friend", body=body)
 
@@ -241,6 +334,9 @@ class Client:
             return False
 
     def remove_friend(self, friend_id):
+        """
+        Removes a user from friend list.
+        """
         body = json.dumps({"user_id": self.user_id, "friend_id": friend_id}).encode()
         status, response = self.send_request("POST", "/remove_friend", body=body)
 
@@ -252,6 +348,11 @@ class Client:
 
     # GET
     def download(self, file_path):
+        """
+        Downloads a file from the server by path.
+
+        :return: File content as bytes, or None on failure
+        """
         params = {"file": file_path}
         status, body = self.send_request("GET", "/download", params)
 
@@ -264,6 +365,11 @@ class Client:
             return None
 
     def get_gallery(self):
+        """
+        Fetches the list of user's uploaded images.
+
+        :return: List of image dicts, or empty list on error
+        """
         params = {"id": self.user_id}
         status, response = self.send_request("GET", "/gallery", params)
 
@@ -276,6 +382,11 @@ class Client:
             return []
 
     def get_chats(self):
+        """
+        Fetches list of user's chats.
+
+        :return: List of chat dicts, or empty list
+        """
         params = {"id": self.user_id}
         status, response = self.send_request("GET", "/chats", params)
 
@@ -288,6 +399,11 @@ class Client:
             return []
 
     def get_friends(self):
+        """
+        Retrieves the current user's friend list.
+
+        :return: List of friends or empty list
+        """
         params = {"user_id": self.user_id}
         status, response = self.send_request("GET", "/friends", params)
 
@@ -299,6 +415,11 @@ class Client:
             return []
 
     def get_incoming_requests(self):
+        """
+        Gets all incoming (pending) friend requests.
+
+        :return: List of dicts
+        """
         params = {"user_id": self.user_id}
         status, response = self.send_request("GET", "/requests_incoming", params)
 
@@ -310,6 +431,11 @@ class Client:
             return []
 
     def get_outgoing_requests(self):
+        """
+        Gets all outgoing (pending) friend requests.
+
+        :return: List of dicts
+        """
         params = {"user_id": self.user_id}
         status, response = self.send_request("GET", "/requests_outgoing", params)
 
@@ -321,6 +447,11 @@ class Client:
             return []
 
     def search_user(self, username, searcher_id):
+        """
+        Searches for users by partial name, excluding current user.
+
+        :return: List of matches
+        """
         params = {"username": username, "searcher_id": searcher_id}
         status, response = self.send_request("GET", "/search_user", params)
 
@@ -332,6 +463,9 @@ class Client:
             return []
 
     def exit(self):
+        """
+        Sends logout request and closes the connection gracefully.
+        """
         params = {"id": self.user_id}
         try:
             status, response = self.send_request("GET", "/exit", params)

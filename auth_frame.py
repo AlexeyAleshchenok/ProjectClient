@@ -3,7 +3,18 @@ from tkinter import messagebox
 
 
 class AuthFrame(tk.Frame):
+    """
+    Authentication frame (Tkinter) for login and registration.
+    Supports switching modes, user validation, and session initialization.
+    """
     def __init__(self, parent, on_login_success, client):
+        """
+        Initializes the authentication frame UI.
+
+        :param parent: Parent widget (MainApplication)
+        :param on_login_success: Callback function executed on successful login
+        :param client: Instance of the Client class for communication with server
+        """
         super().__init__(parent)
         self.on_login_success = on_login_success
         self.client = client
@@ -24,6 +35,10 @@ class AuthFrame(tk.Frame):
         self.init_widgets()
 
     def init_widgets(self):
+        """
+        Initializes or rebuilds the authentication form UI depending on the current mode (login or registration).
+        Clears all existing widgets and redraws them.
+        """
         for widget in self.winfo_children():
             widget.destroy()
 
@@ -53,6 +68,10 @@ class AuthFrame(tk.Frame):
         self.success_label = tk.Label(self, text="", font=("Arial", 12))
 
     def switch_mode(self):
+        """
+        Toggles between login and registration modes.
+        Updates UI texts accordingly.
+        """
         self.is_login_mode = not self.is_login_mode
         mode = "Entrance" if self.is_login_mode else "Registration"
         button_text = "No account? Register" if self.is_login_mode else "Do you already have an account? Enter"
@@ -63,6 +82,12 @@ class AuthFrame(tk.Frame):
         self.init_widgets()
 
     def authenticate(self):
+        """
+        Handles both login and registration logic depending on the current mode.
+
+        - In login mode: validates credentials and logs in user.
+        - In registration mode: creates a new account and switches to log in.
+        """
         login = self.login_entry.get()
         password = str(self.password_entry.get())
         username = self.username_entry.get().strip() if not self.is_login_mode else None
@@ -93,6 +118,10 @@ class AuthFrame(tk.Frame):
                 messagebox.showerror("Error", f"Error during registration: {e}")
 
     def show_logged_in(self):
+        """
+        Updates the frame to display a confirmation message
+        and a logout button after successful login.
+        """
         for widget in self.winfo_children():
             widget.pack_forget()
 
@@ -101,6 +130,10 @@ class AuthFrame(tk.Frame):
         self.logout_button.pack(pady=5)
 
     def logout(self):
+        """
+        Logs out the current user and resets the authentication form.
+        Also resets the client connection via parent application.
+        """
         try:
             self.master.reset_client()  # type: ignore
         except Exception as e:

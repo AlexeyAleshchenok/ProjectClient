@@ -5,7 +5,19 @@ from PIL import Image, ImageTk
 
 
 class GalleryFrame(tk.Frame):
+    """
+    Gallery tab that displays user's uploaded images in a scrollable grid.
+    Supports downloading thumbnails, opening images full screen, and sending them to chats.
+    """
     def __init__(self, parent, client, user_id):
+        """
+        Initializes the gallery UI with a scrollable canvas,
+        thumbnail grid layout, and local cache directory.
+
+        :param parent: Parent widget (usually MainApplication)
+        :param client: Instance of Client for server communication
+        :param user_id: Current user's ID for identifying image ownership
+        """
         super().__init__(parent)
         self.client = client
         self.user_id = user_id
@@ -26,6 +38,10 @@ class GalleryFrame(tk.Frame):
         self.thumbnail_size = (150, 150)
 
     def load_gallery(self):
+        """
+        Fetches the user's image list from the server and displays them as thumbnails.
+        Clears previous content before loading.
+        """
         files = self.client.get_gallery()
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
@@ -38,6 +54,13 @@ class GalleryFrame(tk.Frame):
                 self.display_thumbnail(i, name, cached_path)
 
     def download_and_cache(self, file_path, filename):
+        """
+        Downloads the image from the server if it's not already cached locally.
+
+        :param file_path: Remote path to image on the server
+        :param filename: Local filename to store
+        :return: Local file path if successful, None otherwise
+        """
         local_path = os.path.join(self.cache_dir, filename)
         if os.path.exists(local_path):
             return local_path
@@ -52,6 +75,14 @@ class GalleryFrame(tk.Frame):
         return local_path
 
     def display_thumbnail(self, index, filename, image_path):
+        """
+        Displays a single image thumbnail with filename caption.
+        Left-click opens full screen view, right-click opens send-to-chat menu.
+
+        :param index: Position in the thumbnail grid
+        :param filename: Name of the file
+        :param image_path: Local path to the image
+        """
         try:
             image = Image.open(image_path)
             image.thumbnail(self.thumbnail_size)
@@ -72,6 +103,11 @@ class GalleryFrame(tk.Frame):
             print(f"Error during uploading {filename}: {ex}")
 
     def open_full_screen(self, image_path):
+        """
+        Opens the selected image in a new full screen Toplevel window.
+
+        :param image_path: Local path to the image to display
+        """
         try:
             img = Image.open(image_path)
             win = Toplevel(self)
@@ -86,6 +122,11 @@ class GalleryFrame(tk.Frame):
             messagebox.showerror("Error", f"Couldn't open the image: {e}")
 
     def open_send_menu(self, filename):
+        """
+        Opens a dialog to select a chat and send the selected image to it.
+
+        :param filename: Name of the image to send
+        """
         try:
             top = Toplevel(self)
             top.title("Send to the chat")

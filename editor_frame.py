@@ -14,11 +14,27 @@ RESOLUTIONS = {"360p": (480, 360),
 KERNELS = {"Blur": np.array([[1, 1, 1, 1, 1], [1, 1, 1, 1, 1],
                             [1, 1, 1, 1, 1], [1, 1, 1, 1, 1], [1, 1, 1, 1, 1]], dtype=np.float32) / 25.0,
            "Sharpness": np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32),
-           "Edge detection": np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], dtype=np.float32)}
+           "Edge detection": np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], dtype=np.float32),
+           "Emboss": np.array([[-2, -1, 0], [-1, 1, 1], [0, 1, 2]], dtype=np.float32),
+           "Outline": np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]], dtype=np.float32),
+           "Box Blur (3x3)": np.ones((3, 3), dtype=np.float32) / 9.0,
+           "Gaussian Blur": np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]], dtype=np.float32) / 16.0,
+           "Light Sharpen": np.array([[0, -0.5, 0],[-0.5, 3, -0.5],[0, -0.5, 0]], dtype=np.float32)}
 
 
 class EditorFrame(tk.Frame):
+    """
+    GUI frame for the image editor.
+    Provides canvas-based image manipulation: filters, cropping, resizing, compression, undo/redo, saving, and upload.
+    """
     def __init__(self, parent):
+        """
+        Initializes all editor widgets and tools:
+        - Canvas for image display
+        - Zoom and pan support
+        - Tool buttons (filters, crop, compression, etc.)
+        - Bottom control panel (open, save, reset, undo, redo)
+        """
         super().__init__(parent)
         self.parent = parent
         self.editor = Editor()
@@ -83,6 +99,9 @@ class EditorFrame(tk.Frame):
         tk.Button(self.bottom_panel, text="Forward", command=self.redo).pack(side=tk.RIGHT)
 
     def open_file(self):
+        """
+        Opens an image file using file dialog and displays it in the editor.
+        """
         filename = filedialog.askopenfilename(filetypes=[("Images", "*.png *.jpg *.jpeg *.bmp")])
         if filename:
             print("File is open:", filename)
@@ -91,6 +110,12 @@ class EditorFrame(tk.Frame):
             self.display_image(self.editor.current_image)
 
     def display_image(self, img):
+        """
+        Displays the image on the canvas with scaling applied.
+        Stores base thumbnail version and resets zoom/pan state.
+
+        :param img: PIL image to display
+        """
         base = img.copy()
         base.thumbnail((500, 400))
         self.disp_w, self.disp_h = base.size
@@ -101,6 +126,10 @@ class EditorFrame(tk.Frame):
         self._redraw_canvas()
 
     def _redraw_canvas(self):
+        """
+        Internal method to redraw image on the canvas,
+        applying current zoom and pan offset.
+        """
         if not hasattr(self, "base_photo"):
             return
 
@@ -116,14 +145,24 @@ class EditorFrame(tk.Frame):
         self.canvas.create_image(cx, cy, image=self.photo, anchor=tk.CENTER)
 
     def undo(self):
+        """
+        Undo the last editing operation.
+        """
         self.editor.undo()
         self.display_image(self.editor.current_image)
 
     def redo(self):
+        """
+        Redo the last undone editing operation.
+        """
         self.editor.redo()
         self.display_image(self.editor.current_image)
 
     def on_mousewheel(self, event):
+        """
+        Zooms in/out based on mouse wheel movement.
+        Adjusts zoom level and keeps the cursor focus.
+        """
         if event.delta > 0 or event.num == 4:
             factor = 1.1 if (event.state & 0x0004) else 1.25
         else:
@@ -145,9 +184,15 @@ class EditorFrame(tk.Frame):
         self._redraw_canvas()
 
     def pan_start_event(self, event):
+        """
+        Records starting point for image panning on right-click.
+        """
         self.pan_start = (event.x, event.y)
 
     def pan_move_event(self, event):
+        """
+        Updates image offset based on mouse drag.
+        """
         if not self.pan_start:
             return
         dx = event.x - self.pan_start[0]
@@ -166,6 +211,10 @@ class EditorFrame(tk.Frame):
                 print("The changes have been reset")
 
     def show_save_options(self):
+        """
+        Opens a dialog window offering save/upload options:
+        to device, to gallery, or both.
+        """
         window = tk.Toplevel(self)
         window.title("Save the file")
         window.geometry("300x150")
@@ -176,6 +225,11 @@ class EditorFrame(tk.Frame):
         tk.Button(window, text="To both", command=lambda: self.save_choice("both", window)).pack(pady=5)
 
     def save_choice(self, choice, window):
+        """
+        Handles the user’s save option selection.
+        :param choice: "device", "gallery", or "both"
+        :param window: The dialog window to close after selection
+        """
         window.destroy()
         if not self.editor.current_image:
             messagebox.showwarning("There is no image", "First, open the image.")
@@ -188,6 +242,9 @@ class EditorFrame(tk.Frame):
             self.upload_to_gallery()
 
     def save_to_device(self):
+        """
+        Saves the current image locally to disk using file dialog.
+        """
         filepath = filedialog.asksaveasfilename(defaultextension=".png",
                                                 filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg *.jpeg")])
         if filepath:
@@ -198,6 +255,10 @@ class EditorFrame(tk.Frame):
                 messagebox.showerror("Error", f"Couldn't save the file:\n{e}")
 
     def upload_to_gallery(self):
+        """
+        Uploads the current image to the user's gallery (server-side).
+        Requires authentication.
+        """
         if not self.parent.username:
             messagebox.showwarning("Entrance is required", "Log in to upload the image.")
             return
@@ -213,6 +274,9 @@ class EditorFrame(tk.Frame):
             messagebox.showerror("Error", f"Couldn't upload image:\n{e}")
 
     def open_resize_window(self):
+        """
+        Opens a window for resizing image to a selected resolution (e.g., 720p, 1080p).
+        """
         window = tk.Toplevel(self)
         window.title("Quality changing")
         tk.Label(window, text="Select a resolution:").pack(pady=5)
@@ -233,6 +297,9 @@ class EditorFrame(tk.Frame):
         tk.Button(window, text="Apply", command=apply).pack(pady=5)
 
     def open_compression_window(self):
+        """
+        Opens a window for compressing the image with a chosen quality preset.
+        """
         if not self.editor.current_image:
             messagebox.showwarning("There is no image", "First, open the image.")
             return
@@ -262,10 +329,19 @@ class EditorFrame(tk.Frame):
         tk.Button(window, text="Apply", command=apply).pack(pady=5)
 
     def rotate_and_refresh(self, angle):
+        """
+        Rotates the image by a given angle and refreshes the canvas.
+
+        :param angle: Degrees (positive for counterclockwise)
+        """
         self.editor.rotate_image(angle)
         self.display_image(self.editor.current_image)
 
     def open_crop_window(self):
+        """
+        Opens cropping window with predefined aspect ratio options,
+        rotation controls, and manual crop toggle.
+        """
         if not self.editor.current_image:
             messagebox.showwarning("There is no image", "First, open the image.")
             return
@@ -305,6 +381,10 @@ class EditorFrame(tk.Frame):
             manual_btn.config(text="Turn off" if self.manual_crop_mode else "Turn on")
 
     def toggle_manual_crop(self):
+        """
+        Enables or disables manual cropping mode.
+        Clears any active selection if deactivated.
+        """
         self.manual_crop_mode = not self.manual_crop_mode
         if not self.manual_crop_mode:
             if self.crop_rect_id:
@@ -313,6 +393,9 @@ class EditorFrame(tk.Frame):
             self.crop_start = None
 
     def start_crop(self, event):
+        """
+        Mouse-down event to start drawing manual crop rectangle.
+        """
         if not (self.manual_crop_mode and self.editor.current_image):
             return
         self.crop_start = (event.x, event.y)
@@ -321,6 +404,9 @@ class EditorFrame(tk.Frame):
             self.crop_rect_id = None
 
     def draw_crop_rect(self, event):
+        """
+        Mouse-move event to update live crop rectangle display.
+        """
         if not (self.manual_crop_mode and self.crop_start):
             return
         x0, y0 = self.crop_start
@@ -331,6 +417,11 @@ class EditorFrame(tk.Frame):
         self.crop_rect_id = self.canvas.create_rectangle(x0, y0, x1, y1, outline="red", width=2)
 
     def finish_crop(self, event):
+        """
+        Mouse-release event that calculates and applies the crop based on selection.
+
+        Converts canvas coordinates to actual image coordinates using scale and offset.
+        """
         if not (self.manual_crop_mode and self.crop_start and self.editor.current_image):
             return
 
@@ -365,6 +456,10 @@ class EditorFrame(tk.Frame):
             self.crop_rect_id = None
 
     def open_filters_window(self):
+        """
+        Opens a window to select and apply convolution filters (e.g., blur, sharpen).
+        Supports combining filters or resetting before applying.
+        """
         if not self.editor.current_image:
             messagebox.showwarning("There is no image", "First, open the image.")
             return

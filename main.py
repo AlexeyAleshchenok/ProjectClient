@@ -14,7 +14,16 @@ SERVER_PORT = 443
 
 
 class MainApplication(tk.Tk):
+    """
+    Main Tkinter application class for the client GUI.
+    Manages user authentication, tab switching, and interaction with the client backend.
+    """
     def __init__(self):
+        """
+        Initializes the main application window, tab layout, and child frames.
+        Sets up tabs: Editor (always available), Authorization, Gallery, and Chat.
+        Gallery and Chat tabs are gated by authentication.
+        """
         super().__init__()
         self.title("Image Editor")
         self.geometry("800x650")
@@ -52,6 +61,16 @@ class MainApplication(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def on_login_success(self, username, user_id):
+        """
+        Callback method executed after successful login or sign-up.
+
+        - Updates user session state.
+        - Replaces placeholder Gallery and Chat tabs with full-featured ones.
+        - Loads gallery content if available.
+
+        :param username: Display name of the logged-in user
+        :param user_id: Unique ID of the logged-in user
+        """
         self.username = username
         self.user_id = user_id
         print(f"The entry is made as: {username}")
@@ -69,6 +88,14 @@ class MainApplication(tk.Tk):
             self.gallery_widget.load_gallery()
 
     def check_authentication(self, event):
+        """
+        Triggered whenever the user switches between tabs.
+        - Verifies if the user is authenticated before accessing Gallery or Chats.
+        - Displays warning and redirects to log in tab if not authorized.
+        - Reloads chat or gallery data if the user is logged in.
+
+        :param event: Tkinter event object from tab switching
+        """
         current_tab = self.notebook.select()
         tab_text = self.notebook.tab(current_tab, "text")
 
@@ -87,6 +114,14 @@ class MainApplication(tk.Tk):
         self.destroy()
 
     def reset_client(self):
+        """
+        Resets the current client connection and session state.
+
+        - Clears temporary gallery cache.
+        - Closes existing client socket (if any).
+        - Creates new Client instance and updates frame references.
+        - Resets username and replaces Gallery/Chat tabs with stub versions.
+        """
         try:
             shutil.rmtree("temp_gallery_cache")
             os.makedirs("temp_gallery_cache", exist_ok=True)

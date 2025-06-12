@@ -9,7 +9,21 @@ import threading
 
 
 class ChatFrame(tk.Frame):
+    """
+    A Tkinter frame that displays chat functionality including:
+    - Sidebar with chat list and friend tools
+    - Chat area with history and message input
+    - Image preview and upload from gallery
+    """
     def __init__(self, parent, client, username, user_id):
+        """
+        Initializes the chat interface UI and member variables.
+
+        :param parent: Main application window
+        :param client: Client instance for server communication
+        :param username: Current user's name
+        :param user_id: Current user's ID
+        """
         super().__init__(parent)
         self.username = username
         self.user_id = user_id
@@ -36,6 +50,13 @@ class ChatFrame(tk.Frame):
         self.init_ui()
 
     def init_ui(self):
+        """
+        Constructs all UI components of the chat frame, including:
+        - Sidebar for chats and friend tools
+        - Chat canvas for displaying message bubbles
+        - Entry box for sending messages
+        - Button for sending attachments (images)
+        """
         self.sidebar = tk.Frame(self, width=250, bg="#f0f0f0")
         self.sidebar.pack(side="left", fill="y")
 
@@ -96,12 +117,14 @@ class ChatFrame(tk.Frame):
         attach_button.pack(side="left", padx=5)
 
     def load_chats(self):
+        """Fetches available chats from the server and displays them in the sidebar."""
         self.chats = self.client.get_chats()
         self.chat_listbox.delete(0, tk.END)
         for chat in self.chats:
             self.chat_listbox.insert(tk.END, chat["name"])
 
     def load_friends(self):
+        """Fetches the current user's friends and their online status, and displays them."""
         for widget in self.friends_frame.winfo_children():
             widget.destroy()
 
@@ -121,6 +144,7 @@ class ChatFrame(tk.Frame):
             label.pack(fill="x", anchor="w")
 
     def on_chat_select(self, event):
+        """Handles chat selection from the listbox and displays its message history."""
         selection = self.chat_listbox.curselection()
         if not selection:
             return
@@ -131,6 +155,7 @@ class ChatFrame(tk.Frame):
         self.display_chat_history(self.selected_chat_id)
 
     def display_chat_history(self, chat_id):
+        """Loads and displays all stored messages for the given chat."""
         for widget in self.chat_area.winfo_children():
             widget.destroy()
 
@@ -139,6 +164,10 @@ class ChatFrame(tk.Frame):
             self.display_message(message)
 
     def display_message(self, message):
+        """
+        Displays a single message bubble (text or image) in the chat area.
+        Downloads the image from server if necessary.
+        """
         sender = message.get("sender", "Unknown")
         sender_id = message.get("sender_id", "")
         content = message.get("content", "")
@@ -207,6 +236,10 @@ class ChatFrame(tk.Frame):
         self.chat_canvas.yview_moveto(1.0)
 
     def open_create_chat_window(self):
+        """
+        Opens a popup window where the user can specify a chat name
+        and select participants from their friend list to create a group chat.
+        """
         window = tk.Toplevel(self)
         window.title("Create a new chat")
         window.grab_set()
@@ -253,6 +286,10 @@ class ChatFrame(tk.Frame):
         tk.Button(button_frame, text="Cancel", command=window.destroy).pack(side="right", padx=5)
 
     def open_add_friend_window(self):
+        """
+        Opens a popup window to search users by name and send friend requests.
+        Shows results in a list and allows selecting one to send a request.
+        """
         window = tk.Toplevel(self)
         window.title("Add a friend")
         window.grab_set()
@@ -304,6 +341,10 @@ class ChatFrame(tk.Frame):
         tk.Button(button_frame, text="➕ Add to Friends", command=send_request).pack(side="right", padx=5)
 
     def open_friend_requests_window(self):
+        """
+        Opens a tabbed popup window showing incoming and outgoing friend requests.
+        Allows accepting or declining incoming requests.
+        """
         window = tk.Toplevel(self)
         window.title("Friend requests")
         window.geometry("400x400")
@@ -369,6 +410,7 @@ class ChatFrame(tk.Frame):
         refresh_lists()
 
     def refresh_chat_list(self):
+        """Reloads chat list and maps indexes to chat IDs."""
         self.chat_listbox.delete(0, tk.END)
         self.chats = self.client.get_chats()
 
@@ -377,6 +419,10 @@ class ChatFrame(tk.Frame):
             self.chat_listbox.insert(tk.END, chat["name"])
 
     def send_text_message(self):
+        """
+        Sends a plain text message to the selected chat.
+        Also displays the message locally.
+        """
         content = self.message_entry.get().strip()
         if not content or not self.selected_chat_id:
             return
@@ -387,6 +433,10 @@ class ChatFrame(tk.Frame):
                               "content": content, "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
 
     def open_gallery_selector_for_chat(self):
+        """
+        Opens a gallery image picker window that shows all cached images.
+        User can click on any image to send it to the currently selected chat.
+        """
         cache_dir = "temp_gallery_cache"
         if not os.path.exists(cache_dir):
             messagebox.showinfo("The gallery is empty", "There are no images in the gallery cache.")
@@ -418,6 +468,17 @@ class ChatFrame(tk.Frame):
             self.display_gallery_thumbnail(scrollable_frame, i, filename, image_path, server_path, selector)
 
     def display_gallery_thumbnail(self, parent, index, filename, image_path, server_path, selector_window):
+        """
+        Helper function to render a single image thumbnail inside the gallery selector.
+        Binds click event to send the image to the chat.
+
+        :param parent: Parent frame to insert the thumbnail
+        :param index: Position in the grid
+        :param filename: Display name
+        :param image_path: Local cached path
+        :param server_path: Server-side image path to send
+        :param selector_window: Reference to close the selector after sending
+        """
         try:
             image = Image.open(image_path)
             image.thumbnail((150, 150))
